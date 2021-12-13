@@ -8,7 +8,7 @@ egypt <- st_read("../Input/egy_admbnda_adm1_capmas_20170421/egy.shp")
 
 plot(egypt)
 
-
+    
 # Governate ---------------------------------------------------------------
 
 
@@ -202,6 +202,20 @@ joined_data %>%
   theme(legend.position = "none") +
   ggtitle("Figure 3: Prevalence of Issues in Detention Conditions") +
   theme(plot.title = element_text(hjust = 0.5))
+
+
+# Legal Representation ----------------------------------------------------
+
+
+
+# Enforced Disappearances -------------------------------------------------
+
+
+
+
+# Socio Economic Factors --------------------------------------------------
+
+
   
 
 
