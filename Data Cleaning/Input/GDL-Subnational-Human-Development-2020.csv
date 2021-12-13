@@ -1,0 +1,23 @@
+Country,ISO_Code,Level,GDLCODE,Region,"Subnational Human Development Index","Health Index","Standard of Living Index","Education Index","Life expectancy","Gross National Income per Capita","Expected Years Schooling","Mean Years Schooling"
+"Egypt","EGY","Subnat","EGYr102","Alexandria",0.750,0.812,0.728,0.719,72.7,12.3,14.5,9.54
+"Egypt","EGY","Subnat","EGYr118","Assuit",0.655,0.758,0.696,0.535,69.2,9.99,11.9,6.11
+"Egypt","EGY","Subnat","EGYr121","Aswan",0.700,0.793,0.706,0.609,71.5,10.8,12.3,7.98
+"Egypt","EGY","Subnat","EGYr112","Behera",0.695,0.828,0.718,0.565,73.9,11.5,12.6,6.42
+"Egypt","EGY","Subnat","EGYr115","Beni Suef",0.674,0.774,0.710,0.559,70.2,11.0,12.1,6.67
+"Egypt","EGY","Subnat","EGYr101","Cairo",0.754,0.837,0.726,0.699,74.3,12.2,13.9,9.33
+"Egypt","EGY","Subnat","EGYr106","Dakahlia",0.722,0.820,0.721,0.637,73.4,11.7,13.7,7.75
+"Egypt","EGY","Subnat","EGYr105","Damietta",0.732,0.840,0.728,0.639,74.5,12.3,13.5,7.94
+"Egypt","EGY","Subnat","EGYr116","Fayoum",0.682,0.816,0.702,0.548,73.0,10.6,12.4,6.08
+"Egypt","EGY","Subnat","EGYr122","Frontier governorates (Red Sea, New Valley, Matroh, North Sainai, South Sainai)",0.712,0.815,0.715,0.618,72.9,11.4,12.4,8.22
+"Egypt","EGY","Subnat","EGYr110","Gharbia",0.719,0.806,0.715,0.641,72.3,11.5,13.4,8.01
+"Egypt","EGY","Subnat","EGYr114","Giza",0.707,0.814,0.718,0.605,73.0,11.5,12.7,7.63
+"Egypt","EGY","Subnat","EGYr113","Ismailia",0.721,0.786,0.726,0.655,71.0,12.2,13.6,8.34
+"Egypt","EGY","Subnat","EGYr109","Kafr El-Sheikh",0.714,0.822,0.725,0.609,73.4,12.1,13.7,6.79
+"Egypt","EGY","Subnat","EGYr108","Kalyubia",0.712,0.782,0.708,0.648,70.9,10.8,13.8,7.91
+"Egypt","EGY","Subnat","EGYr111","Menoufia",0.725,0.837,0.717,0.640,74.3,11.5,13.7,7.75
+"Egypt","EGY","Subnat","EGYr117","Menya",0.670,0.776,0.695,0.557,70.4,10.1,12.9,5.98
+"Egypt","EGY","Subnat","EGYr103","Port Said",0.766,0.824,0.736,0.743,73.5,13.2,14.6,10.2
+"Egypt","EGY","Subnat","EGYr120","Qena",0.686,0.781,0.703,0.587,70.7,10.6,12.9,6.85
+"Egypt","EGY","Subnat","EGYr107","Sharkia",0.705,0.789,0.711,0.625,71.4,11.0,13.5,7.56
+"Egypt","EGY","Subnat","EGYr119","Souhag",0.664,0.765,0.695,0.552,69.7,9.92,12.2,6.41
+"Egypt","EGY","Subnat","EGYr104","Suez",0.753,0.825,0.736,0.708,73.6,13.1,14.1,9.57

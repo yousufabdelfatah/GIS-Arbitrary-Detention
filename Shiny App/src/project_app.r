@@ -12,11 +12,13 @@ library(tidyverse)
 
 # Read in Egypt Shapefile
 
-egypt <- st_read("../Input/egy_admbnda_adm1_capmas_20170421/egy.shp")
+egypt <- 
+  st_read("../Input/egy_admbnda_adm1_capmas_20170421/egy.shp")
 
 # Read in Detention Data
 
-detention <- read_csv("../Input/Full_Detention_Data.csv")
+detention <- 
+  read_csv("../Input/Full_Detention_Data.csv")
 
 # Read in Population Data
 

@@ -1,48 +1,33 @@
----
-title: "Data Cleaning"
-output: html_document
----
-```{r}
+
 # load packages
 library(tidyverse)
 library(readxl)
-```
 
-```{r}
 # pull sheets
 case_165<- readxl::read_excel("~/Desktop/Fall\ 2021/Data\ Viz/Project/Data\ Cleaning/Input/Case_165.xlsx")
-```
 
-
-```{r}
 path_165 <- "~/Desktop/Fall\ 2021/Data\ Viz/Project/Data\ Cleaning/Input/Case_165.xlsx"
 path_123 <- "~/Desktop/Fall\ 2021/Data\ Viz/Project/Data\ Cleaning/Input/Case_123.xlsx"
 path_16850 <- "~/Desktop/Fall\ 2021/Data\ Viz/Project/Data\ Cleaning/Input/Case_16850_2014.xlsx"
 path_81 <- "~/Desktop/Fall\ 2021/Data\ Viz/Project/Data\ Cleaning/Input/Case_81_2016.xlsx"
-```
 
-```{r}
 # there has to be a better way to load all the sheets
 read_excel_allsheets <- function(filename, tibble = FALSE) {
-    # I prefer straight data.frames
-    # but if you like tidyverse tibbles (the default with read_excel)
-    # then just pass tibble = TRUE
-    sheets <- readxl::excel_sheets(filename)
-    x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
-    if(!tibble) x <- lapply(x, as.data.frame)
-    names(x) <- sheets
-    x
+  # I prefer straight data.frames
+  # but if you like tidyverse tibbles (the default with read_excel)
+  # then just pass tibble = TRUE
+  sheets <- readxl::excel_sheets(filename)
+  x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
+  if(!tibble) x <- lapply(x, as.data.frame)
+  names(x) <- sheets
+  x
 }
-```
 
-```{r}
 case_165 <- read_excel_allsheets(path_165)
 case_123 <- read_excel_allsheets(path_123)
 case_16850 <- read_excel_allsheets(path_16850)
 case_81 <- read_excel_allsheets(path_81)
-```
 
-```{r}
 # pull the relevant sheets
 profile_165 <- case_165[[1]]
 enforced_disappearances_165 <- case_165[[3]]
@@ -67,18 +52,15 @@ torture_81 <- case_81[[7]]
 legal_rep_81 <- case_81[[8]]
 enforced_disappearances_81 <- case_81[[9]]
 profile_81 <- case_81[[11]]
-```
 
-```{r}
+
 # save similar dfs together
 # profiles <- ls(pattern = "prof")
 # enforced_disappearances <- ls(pattern = "enforced")
 # legal_rep <- ls(pattern = "legal")
 # torture<- ls(pattern = "torture")
 # detention <- ls(pattern = "detention")
-```
 
-```{r}
 # standardize names
 names(profile_165) <- tolower(names(profile_165))
 names(enforced_disappearances_165) <- tolower(names(enforced_disappearances_165))
@@ -104,16 +86,10 @@ names(legal_rep_81) <- tolower(names(legal_rep_81))
 names(torture_81) <- tolower(names(torture_81))
 names(detention_centers_81) <- tolower(names(detention_centers_81))
 
-```
-
-```{r}
 #rename misspellaed variables
 enforced_disappearances_123 <- enforced_disappearances_123 %>% 
   rename(status = statud)
-```
 
-
-```{r}
 # slim down
 profile_81 <- profile_81 %>% 
   select(name:`charge 17`)
@@ -174,44 +150,28 @@ detention_centers_16850 <- detention_centers_16850 %>%
 
 detention_centers_81 <- detention_centers_81 %>% 
   select(name:overcrowding)
-```
 
-```{r}
 torture_165$threaten_family[37] <- 1
 torture_165$threaten_family[42] <- 1
 torture_165$threaten_family <- as.numeric(torture_165$threaten_family)
-```
 
-```{r}
 enforced_disappearances_123$official_arrest <- as.character(enforced_disappearances_123$official_arrest)
 enforced_disappearances_16850$official_arrest <- as.character(enforced_disappearances_16850$official_arrest)
-```
 
-```{r}
 enforced_disappearances_81 <- enforced_disappearances_81 %>% 
   separate(days_disappeared, c("days_disappeared", NA))
-```
 
-```{r}
 enforced_disappearances_81$days_disappeared <- as.numeric(enforced_disappearances_81$days_disappeared)
 enforced_disappearances_16850$days_disappeared <- as.numeric(enforced_disappearances_16850$days_disappeared)
-```
 
-
-```{r}
 profiles <- bind_rows(profile_123, profile_165, profile_16850, profile_81)
 legal_rep <- bind_rows(legal_rep_123, legal_rep_165, legal_rep_16850, legal_rep_81)
 enforced_disappearances <- bind_rows(enforced_disappearances_123, enforced_disappearances_165, enforced_disappearances_16850, enforced_disappearances_81)
 detention_centers <- bind_rows(detention_centers_123, detention_centers_165, detention_centers_16850, detention_centers_81)
 torture <- bind_rows(torture_123, torture_165, torture_16850, torture_81)
-```
 
-```{r}
 # torture$beating <-as.logical(torture$beating)  
-```
 
-
-```{r}
 # lets look at types of data
 visdat::vis_dat(torture)
 visdat::vis_dat(profiles)
@@ -220,10 +180,7 @@ visdat::vis_dat(legal_rep)
 visdat::vis_dat(detention_centers)
 # this is because 16850 has a bunch of messed up columns
 # here we can also see the distribution of NA values
-```
 
-
-```{r}
 # there are some columns where all values are NA so drop them
 torture <- torture %>% 
   drop_na(name)
@@ -239,31 +196,21 @@ enforced_disappearances <- enforced_disappearances %>%
 
 profiles <- profiles %>% 
   drop_na(name)
-```
 
-
-```{r}
 # should we combine into one big csv?
 full <- profiles %>% 
   left_join(detention_centers, by = 'name') %>% 
   left_join(legal_rep, by = 'name') %>% 
   left_join(enforced_disappearances, by = 'name') %>% 
   left_join(torture, by = 'name')
-```
 
-
-```{r}
 #let's look at the column names to see if there are redundancies
 names(full)
-```
 
-```{r}
 # drop the excess statuses and date and page
 full <- full %>% 
   select(-c(status.x, status.y, status.x.x, status.y.y, date, page, assumed_disappearance_location, date_lawyer, ))
-```
 
-```{r}
 # unite job and profession
 full <- full %>% 
   unite("profession", c(job, profession), sep = '', remove = TRUE, na.rm = TRUE) %>% 
@@ -288,94 +235,85 @@ full <- full %>%
 full <- full %>% 
   unite("difference", c(difference_between_official_and_testimony, difference), sep = '', remove = TRUE, na.rm = TRUE) %>% 
   na_if("")
-```
 
-
-```{r}
 # convert the NAs to 0s to represent that there is no record and so we can visualize them in distributions/correlations
 #[is.na(full)] <- 0
 full
-```
 
-
-
-```{r}
 # we'll let age be NA because there 0 actually means something
 # full$age[full$age == 0] <- NA
-```
 
-
-```{r}
 # lets put this in its own csv
 full %>% 
   write_csv("~/Desktop/Fall\ 2021/Data\ Viz/Project/Data\ Cleaning/Output/Full_Detention_Data.csv")
-```
 
-## Now we can finally do the EDA
-
-```{r}
 names(full)
-```
 
-
-```{r}
 # lets look at types of data
 visdat::vis_dat(full)
 
 #this is because 16850 has a bunch of messed up columns
 # here we can also see the distribution of NA values
-```
 
-
-```{r}
 # plot age to make sure there are no crazy outliers
 ggplot(data = full, aes(x = age)) + 
- geom_density(fill = "blue")
-```
-```{r}
+  geom_density(fill = "blue")
+
 min(full$age, na.rm = TRUE)
 
 max(full$age, na.rm = TRUE)
-```
 
-
-```{r}
 # plot gender
 ggplot(data = full, aes(x = gender)) + 
- geom_bar(fill = "blue") +
+  geom_bar(fill = "blue") +
   ggtitle("Figure 1: Gender") +
   theme(plot.title = element_text(hjust = 0.5))
 
-```
-
-```{r}
 # time no lawyer
 ggplot(data = full, aes(x = time_no_lawyer)) + 
- geom_density(fill = "green") +
-   ggtitle("Figure 3: Time Wihtout A Lawyer") +
+  geom_density(fill = "green") +
+  ggtitle("Figure 3: Time Wihtout A Lawyer") +
   theme(plot.title = element_text(hjust = 0.5))
-```
 
-```{r}
 # plot age to make sure there are no crazy outliers
 ggplot(data = full, aes(x = days_disappeared, color = gender)) + 
- geom_freqpoly()  +
+  geom_freqpoly()  +
   ggtitle("Figure 3: Time Disappeared (Days)") +
   theme(plot.title = element_text(hjust = 0.5))
-```
 
-```{r}
 # plot status
 ggplot(data = full, aes(x = status)) + 
- geom_bar(fill = "blue") +
-    ggtitle("Figure 2: Status") +
+  geom_bar(fill = "blue") +
+  ggtitle("Figure 2: Status") +
   theme(plot.title = element_text(hjust = 0.5))
-```
 
 
-```{r}
+# Socio-economic ----------------------------------------------------------
 
-```
+Wealth <- read_csv("Data\ Cleaning/Input/GDL-Wealth.csv") %>% 
+  select(Region, `Poverty (IWI<70)`:`Poverty (IWI<35)`)
+
+Human_Development <- read_csv("Data\ Cleaning/Input/GDL-Subnational-Human-Development-2020.csv") %>% 
+  select(Region:`Mean Years Schooling`)
+
+socio_economic <- 
+  Wealth %>% 
+  left_join(Human_Development, by = "Region") %>% 
+  write_csv("Data\ Cleaning/Output/socio_economic.csv")
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
