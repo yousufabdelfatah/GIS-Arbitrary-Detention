@@ -1,18 +1,24 @@
 
+# Set Up ------------------------------------------------------------------
+
+# load packages
+
 library(tidyverse)
 library(sf)
 library(tmap)
 
-detention <- read_csv("../Input/Full_Detention_Data.csv")
+# load data
 
-egypt <- st_read("../Input/egy_admbnda_adm1_capmas_20170421/egy.shp")
+detention <- read_csv("Data/Full_Detention_Data.csv")
+
+egypt <- st_read("Data/egy_admbnda_adm1_capmas_20170421/egy.shp")
 
 egypt_population <- 
-  read_csv('../Input/egypt_population_estimate_compas_2012_v1.1_0_fis.csv') %>% 
+  read_csv('Data/egypt_population_estimate_compas_2012_v1.1_0_fis.csv') %>% 
   select(ADM1_EN, 'Population' = Total)
 
-sf::plot(egypt)
-
+socioeconomic <- 
+  read_csv("Data/socio_economic.csv")
 
 # Governate ---------------------------------------------------------------
 
@@ -146,20 +152,9 @@ joined_data %>%
   select(Governate, Detained, detention_per_million) %>% 
   distinct()
 
-kable(joined_data %>%
-  as_tibble() %>% 
-  group_by(ADM1_EN) %>% 
-  left_join(egypt_population, by = 'ADM1_EN') %>% 
-  mutate(Detained = n(),
-         detention_per_million = (Detained/Population)*1E6) %>% 
-  rename(Governate = ADM1_EN) %>% 
-  select(Governate, Detained, detention_per_million) %>% 
-  distinct()) %>% 
-  kable_styling("striped") %>%
-  save_kable("detention_table.png")
-
 
 # summary table conditions
+
 joined_data %>% 
   as_tibble() %>% 
   select(42:51) %>% 
@@ -191,22 +186,6 @@ joined_data %>%
   rename_with(str_to_title) %>% 
   rename("Threaten Family" = Threaten_family) 
 
-kable(joined_data %>% 
-  as_tibble() %>% 
-  group_by(ADM1_EN) %>% 
-  select(beating, 
-         electrocution, 
-         threaten_family, 
-         hanging) %>% 
-  replace(is.na(.), 0) %>% 
-  summarise(beating = sum(beating), 
-            electrocution = sum(electrocution), 
-            threaten_family = sum(threaten_family),
-            hanging = sum(hanging)) %>% 
-  rename_with(str_to_title) %>% 
-  rename("Threaten Family" = Threaten_family)) %>% 
-  kable_styling("striped") %>%
-  save_kable("torture_table.png")
 
 # Age ---------------------------------------------------------------------
 
@@ -279,6 +258,124 @@ joined_data %>%
   ggtitle("Figure 3: Prevalence of Issues in Detention Conditions") +
   theme(plot.title = element_text(hjust = 0.5))
 
+# Legal Representation ----------------------------------------------------
+
+# Define English variable for presence of lawyer
+
+Present <- "حضور"
+
+# Plot presence of lawyer
+
+joined_data %>% 
+  as_tibble() %>% 
+  select(lawyer_present) %>% 
+  drop_na()  %>% 
+  mutate(
+    lawyer_present = case_when(
+      lawyer_present == Present ~ "Lawyer Present",
+      lawyer_present != Present ~ "No Legal Representation")) %>% 
+  ggplot(aes(lawyer_present)) +
+  geom_bar()
+
+# Enforced Disappearances -------------------------------------------------
+
+joined_data$disappeared <-
+  if_else(is.na(joined_data$days_disappeared) == FALSE, 1, 0)
+
+joined_data %>% 
+  as_tibble() %>% 
+  select(official_arrest:type_of_location, disappeared) %>% 
+  ggplot(aes(as.factor(disappeared))) +
+  geom_bar()
+
+joined_data %>% 
+  as_tibble() %>% 
+  ggplot(aes(days_disappeared)) +
+  geom_bar()
+
+# Socio Economic Factors --------------------------------------------------
+
+egypt %>% 
+  left_join(socioeconomic %>% 
+              mutate(Region = case_when(
+                Region == "Assuit" ~ 'Assiut',
+                Region == "Kafr El-Sheikh" ~ "Kafr El-Shikh",
+                Region == "Kalyubia"~ "Kalyoubia",
+                Region == "Menya" ~ "Menia",
+                Region == "Souhag" ~ "Suhag",
+                TRUE ~ Region)) %>% 
+              select('Region', 'Poverty (IWI<50)', 'Health Index', 'Education Index', 
+                     'Life expectancy', 'Gross National Income per Capita', 
+                     'Mean Years Schooling'), 
+            by = c("ADM1_EN" = "Region")) %>% 
+  ggplot() +
+  geom_sf(aes(fill = `Health Index`))
+
+
+# Correlation (Statistical Analysis) --------------------------------------
+
+corrplot(correlation, type="upper", order="hclust")
+
+# create a column for presence of torture and correlate with other abuses
+
+abuse_correlation <- cor(joined_data %>% 
+                           as_tibble() %>% 
+                           mutate(torture = if_else(
+                             is.na(beating) == FALSE | 
+                               is.na(electrocution) == FALSE |
+                               is.na(threaten_family) == FALSE |
+                               is.na(hanging) == FALSE,
+                             1,
+                             0)) %>% 
+                           mutate(
+                             lawyer_present = case_when(
+                               lawyer_present == Present ~ 1,
+                               lawyer_present != Present & 
+                                 is.na(lawyer_present) == FALSE ~ 0)) %>% 
+                           select(disappeared, torture, lawyer_present) %>% 
+                           drop_na())  
+
+# plot correlation
+
+corrplot(abuse_correlation, type="upper", order="hclust")
+
+socioeconomic_corr <- cor(joined_data %>% 
+                            as_tibble() %>% 
+                            mutate(torture = if_else(
+                              is.na(beating) == FALSE | 
+                                is.na(electrocution) == FALSE |
+                                is.na(threaten_family) == FALSE |
+                                is.na(hanging) == FALSE,
+                              1,
+                              0)) %>% 
+                            mutate(
+                              lawyer_present = case_when(
+                                lawyer_present == Present ~ 1,
+                                lawyer_present != Present & 
+                                  is.na(lawyer_present) == FALSE ~ 0)) %>% 
+                            select(ADM1_EN, disappeared, torture, lawyer_present) %>% 
+                            drop_na() %>%
+                            group_by(ADM1_EN) %>% 
+                            summarise(torture = sum(torture), 
+                                      disappeared = sum(disappeared), 
+                                      lawyer_present = sum(lawyer_present)) %>% 
+                            left_join(socioeconomic %>% 
+                                        mutate(Region = case_when(
+                                          Region == "Assuit" ~ 'Assiut',
+                                          Region == "Kafr El-Sheikh" ~ "Kafr El-Shikh",
+                                          Region == "Kalyubia"~ "Kalyoubia",
+                                          Region == "Menya" ~ "Menia",
+                                          Region == "Souhag" ~ "Suhag",
+                                          TRUE ~ Region)) %>% 
+                                        select('Region', 'Poverty (IWI<50)', 
+                                               'Mean Years Schooling'), 
+                                      by = c("ADM1_EN" = "Region")) %>% 
+                            select(-ADM1_EN) %>% 
+                            drop_na())  
+
+# plot correlation 
+
+corrplot(socioeconomic_corr, type="upper", order="hclust")
 
 
 

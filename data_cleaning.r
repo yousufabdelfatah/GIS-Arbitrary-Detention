@@ -1,4 +1,3 @@
-
 # load packages -----------------------------------------------------------
 
 library(tidyverse)
@@ -9,16 +8,19 @@ library(readxl)
 # set file paths
 
 path_165 <- 
-  "Data\ Cleaning/Input/Case_165.xlsx"
+  "Data/Case_165.xlsx"
 
 path_123 <- 
-  "Data\ Cleaning/Input/Case_123.xlsx"
+  "Data/Case_123.xlsx"
 
 path_16850 <- 
-  "Data\ Cleaning/Input/Case_16850_2014.xlsx"
+  "Data/Case_16850_2014.xlsx"
 
 path_81 <- 
-  "Data\ Cleaning/Input/Case_81_2016.xlsx"
+  "Data/Case_81_2016.xlsx"
+
+
+# Read in worksheets ------------------------------------------------------
 
 # define function to read all sheets in an excel workbook
 
@@ -31,153 +33,123 @@ read_excel_allsheets <-
     x
   }
 
-# read all the sheets
+# read all the sheets using purrr
 
-case_165 <- 
-  read_excel_allsheets(path_165)
+cases <- list(path_165, path_123, path_16850, path_81)
+case_names <-list('case_165', 'case_123', 'case_16850', 'case_81')
 
-case_123 <- 
-  read_excel_allsheets(path_123)
-
-case_16850 <- 
-  read_excel_allsheets(path_16850)
-
-case_81 <- 
-  read_excel_allsheets(path_81)
+case_list <-
+  cases %>% 
+  purrr::map(~ read_excel_allsheets(.)) %>% 
+  set_names(case_names) %>% 
+  list2env(.GlobalEnv)
 
 # pull the relevant sheets from each workbook 
 
-profile_165 <- 
-  case_165[[1]]
+dfs<- 
+  list(
+    profile_165 <- 
+      case_165[[1]],
+    
+    enforced_disappearances_165 <- 
+      case_165[[3]],
+    
+    legal_rep_165 <- 
+      case_165[[4]],
+    
+    torture_165 <- 
+      case_165[[5]],
+    
+    detention_centers_165 <- 
+      case_165[[6]],
+    
+    profile_123 <- 
+      case_123[[1]],
+    
+    enforced_disappearances_123 <- 
+      case_123[[3]],
+    
+    legal_rep_123 <- 
+      case_123[[4]],
+    
+    torture_123 <- 
+      case_123[[5]],
+    
+    detention_centers_123 <- 
+      case_123[[6]],
+    
+    profile_16850 <- 
+      case_16850[[1]],
+    
+    enforced_disappearances_16850 <- 
+      case_16850[[3]],
+    
+    legal_rep_16850 <- 
+      case_16850[[4]],
+    
+    torture_16850 <- 
+      case_16850[[5]],
+    
+    detention_centers_16850 <-
+      case_16850[[6]],
+    
+    detention_centers_81 <- 
+      case_81[[6]],
+    
+    torture_81 <- 
+      case_81[[7]],
+    
+    legal_rep_81 <- 
+      case_81[[8]],
+    
+    enforced_disappearances_81 <- 
+      case_81[[9]],
+    
+    profile_81 <- 
+      case_81[[11]]) %>% 
 
-enforced_disappearances_165 <- 
-  case_165[[3]]
+  set_names('profile_165',
+            'enforced_disappearances_165',
+            'legal_rep_165',
+            'torture_165',
+            'detention_centers_165',
+            'profile_123',
+            'enforced_disappearances_123',
+            'legal_rep_123',
+            'torture_123',
+            'detention_centers_123',
+            'profile_16850',
+            'enforced_disappearances_16850',
+            'legal_rep_16850',
+            'torture_16850',
+            'detention_centers_16850',
+            'detention_centers_81',
+            'torture_81',
+            'legal_rep_81',
+            'enforced_disappearances_81',
+            'profile_81')
 
-legal_rep_165 <- 
-  case_165[[4]]
-
-torture_165 <- 
-  case_165[[5]]
-
-detention_centers_165 <- 
-  case_165[[6]]
-
-profile_123 <- 
-  case_123[[1]]
-
-enforced_disappearances_123 <- 
-  case_123[[3]]
-
-legal_rep_123 <- 
-  case_123[[4]]
-
-torture_123 <- 
-  case_123[[5]]
-
-detention_centers_123 <- 
-  case_123[[6]]
-
-profile_16850 <- 
-  case_16850[[1]]
-
-enforced_disappearances_16850 <- 
-  case_16850[[3]]
-
-legal_rep_16850 <- 
-  case_16850[[4]]
-
-torture_16850 <- 
-  case_16850[[5]]
-
-detention_centers_16850 <-
-  case_16850[[6]]
-
-detention_centers_81 <- 
-  case_81[[6]]
-
-torture_81 <- 
-  case_81[[7]]
-
-legal_rep_81 <- 
-  case_81[[8]]
-
-enforced_disappearances_81 <- 
-  case_81[[9]]
-
-profile_81 <- 
-  case_81[[11]]
-
-
-# Clean all Data ----------------------------------------------------------
-
-# save similar dfs together
-# profiles <- ls(pattern = "prof")
-# enforced_disappearances <- ls(pattern = "enforced")
-# legal_rep <- ls(pattern = "legal")
-# torture<- ls(pattern = "torture")
-# detention <- ls(pattern = "detention")
+  
+# Clean Data ----------------------------------------------------------
 
 # standardize column names
 
-names(profile_165) <- 
-  tolower(names(profile_165))
+# make all lower case
 
-names(enforced_disappearances_165) <- 
-  tolower(names(enforced_disappearances_165))
+make_lower <- function(df){
+  df %>%
+    set_names(
+      names(.) %>% 
+        tolower())
+}
 
-names(legal_rep_165) <- 
-  tolower(names(legal_rep_165))
+dfs <-
+  dfs %>% 
+  purrr::map(
+    make_lower
+  ) %>% 
+  list2env(.GlobalEnv)
 
-names(torture_165) <- 
-  tolower(names(torture_165))
-
-names(detention_centers_165) <- 
-  tolower(names(detention_centers_165))
-
-names(profile_123) <- 
-  tolower(names(profile_123))
-
-names(enforced_disappearances_123) <- 
-  tolower(names(enforced_disappearances_123))
-
-names(legal_rep_123) <- 
-  tolower(names(legal_rep_123))
-
-names(torture_123) <- 
-  tolower(names(torture_123))
-
-names(detention_centers_123) <- 
-  tolower(names(detention_centers_123))
-
-names(profile_16850) <- 
-  tolower(names(profile_16850))
-
-names(enforced_disappearances_16850) <- 
-  tolower(names(enforced_disappearances_16850))
-
-names(legal_rep_16850) <- 
-  tolower(names(legal_rep_16850))
-
-names(torture_16850) <- 
-  tolower(names(torture_16850))
-
-names(detention_centers_16850) <- 
-  tolower(names(detention_centers_16850))
-
-names(profile_81) <- 
-  tolower(names(profile_81))
-
-names(enforced_disappearances_81) <- 
-  tolower(names(enforced_disappearances_81))
-
-names(legal_rep_81) <- 
-  tolower(names(legal_rep_81))
-
-names(torture_81) <- 
-  tolower(names(torture_81))
-
-names(detention_centers_81) <- 
-  tolower(names(detention_centers_81))
 
 # rename misspelled variables
 
@@ -186,6 +158,8 @@ enforced_disappearances_123 <-
   rename(status = statud)
 
 # keep relevant variables from the sheets
+# It would be great to map this and do it iteratively but the names and orders 
+# of columns aren't standard across the sheets
 
 profile_81 <- 
   profile_81 %>% 
@@ -460,7 +434,9 @@ profiles <-
   profiles %>% 
   drop_na(name)
 
-# Combine into one big csv
+# Create Big Detention Dataset --------------------------------------------
+
+# join "profiles"
 
 full <- 
   profiles %>% 
@@ -541,39 +517,26 @@ full <-
         na.rm = TRUE) %>% 
   na_if("")
 
-# convert the NAs to 0s to represent that there is no record and so we can visualize them in distributions/correlations
-#[is.na(full)] <- 0
-
-full
-
-# we'll let age be NA because there 0 actually means something
-# full$age[full$age == 0] <- NA
-
-# lets put this in its own csv
-
 full %>% 
   write_csv("Data\ Cleaning/Output/Full_Detention_Data.csv")
 
-names(full)
-
-# lets look at types of data
-
-visdat::vis_dat(full)
 
 # Socio-economic ----------------------------------------------------------
 
+# combine economic and development indicators to create one socioeconomic df
+
 Wealth <- 
-  read_csv("Data\ Cleaning/Input/GDL-Wealth.csv") %>% 
+  read_csv("Data/GDL-Wealth.csv") %>% 
   select(Region, `Poverty (IWI<70)`:`Poverty (IWI<35)`)
 
 Human_Development <- 
-  read_csv("Data\ Cleaning/Input/GDL-Subnational-Human-Development-2020.csv") %>% 
+  read_csv("Data/GDL-Subnational-Human-Development-2020.csv") %>% 
   select(Region:`Mean Years Schooling`)
 
 socio_economic <- 
   Wealth %>% 
   left_join(Human_Development, by = "Region") %>% 
-  write_csv("Data\ Cleaning/Output/socio_economic.csv")
+  write_csv("Data/socio_economic.csv")
   
 
 
