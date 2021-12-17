@@ -601,7 +601,7 @@ ui <-
           visibility into the country's criminal justice system, trend analysis
           such as this is an important facet of human rights doucmentation and 
           accountability efforts. The 420 detainees whose data is analyzed here 
-          represent just a small portion of the over 65,000 Egyptian poltiical 
+          represent just a small portion of the over 65,000 Egyptian political 
           prisoners subjected to similar abuses. Data on detentions was provided
           by a partner human rights organizations. Socioeconomic indicators were 
           sourced from the Global Data Lab.")),
@@ -626,9 +626,9 @@ ui <-
           p("The second map contains 3 toggleable socioeconomic indicators: A 
           poverty index, mean years of schooling, and average life expectancy 
           again broken out by governate. While the other two indicators are 
-          seld explanatory, the Povery Index representes the proportion of 
-          households with substandard living conditions.
-          Data for the outer governates was not available."),
+          self explanatory, the Poverty Index represents the proportion of 
+          households with substandard living conditions.Data for the outer 
+          governates was not available."),
           tmapOutput(outputId = 'interactive_map'),
           br(),
           p("As can be seen in the above the more populous and highly urbanized
@@ -645,7 +645,7 @@ ui <-
         tabItem(
           tabName = 'maps2',
           h2('Static Maps'),
-          p("The following static maps contain represent reported abuses per
+          p("The following static maps represent reported abuses per
             governate. The first map shows the number of detainees who reported
             incidents of torture, the second shows the number who did not have
             access to a lawyer, while the third shows the number forcibly 
@@ -655,8 +655,8 @@ ui <-
           p("We see here the same patterns we saw in the previous maps, which
             makes sense considering that's where most of the detainees come
             from. It's also worth noting the shockingly high proportion of
-            detainees from each governate that are subjected to abuse compared. 
-            This to the number of detainees in each governate in the previous 
+            detainees from each governate that are subjected to abuse compared 
+            to the number of detainees in each governate in the previous 
             map. This will be further outlined by the charts in the next tab")),
         
         # setting the charts view and associates radio buttons
@@ -696,7 +696,7 @@ ui <-
             categories are no mutually exclusive"),
           p("Nearly 80% of detainees for which there was data on legal
             representatoin did not have acccess to a lawyer."),
-          p("Almost half of detainees reported being enforcibly disappeared 
+          p("Almost half of detainees reported being forcibly disappeared 
             before being formally detained."),
           p("Most disappearances were roughly a month, while in a few cases they
             lasted up to 200 days.")),
@@ -718,7 +718,7 @@ ui <-
           between abuses and socioeconomic indicators. Importantly the first
           correlation is on an indiviual level, while the second is grouped
           by governate."),
-          plotOutput(outputId = 'plot_correlation', width = '200%'),
+          plotOutput(outputId = 'plot_correlation'),
           br(),
           p("Two interesting observations can be drawn from the above. The first
             is that there does not seem to be very weak correlations between abuse 
@@ -732,7 +732,7 @@ ui <-
             from governates with higher average education levels and lower 
             poverty levels are abused more frequently. The explanation for this
             is simple. Those governates are also the most populated and most
-            urbanized, and thus have the most detainees. This shows a weaknees 
+            urbanized, and thus have the most detainees. This shows a weakness 
             in using governate level data. Were we able to factor down to smaller
             administrative levels and explore intra-governate level differences
             I believe we would see a starkly different result.")),

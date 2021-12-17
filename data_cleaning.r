@@ -518,7 +518,7 @@ full <-
   na_if("")
 
 full %>% 
-  write_csv("Data\ Cleaning/Output/Full_Detention_Data.csv")
+  write_csv("Data/Full_Detention_Data.csv")
 
 
 # Socio-economic ----------------------------------------------------------

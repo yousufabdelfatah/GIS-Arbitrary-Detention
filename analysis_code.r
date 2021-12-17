@@ -6,7 +6,7 @@
 library(tidyverse)
 library(sf)
 library(tmap)
-library(corrr)
+library(corrplot)
 
 # load data
 
@@ -158,7 +158,7 @@ tmap_mode('view')
 
 # Age ---------------------------------------------------------------------
 
-joined_data$arbitrary <- "Y"
+# inspect distribution of ages
 
 joined_data %>% 
   ggplot(aes(age)) +
@@ -174,6 +174,8 @@ joined_data %>%
   theme(plot.title = element_text(hjust = 0.5)) 
 
 # Torture -----------------------------------------------------------------
+
+# inspect subjection to torture
 
 joined_data %>% 
   as_tibble() %>% 
@@ -201,6 +203,8 @@ joined_data %>%
 
 
 # Detention Condition ------------------------------------------------------------
+
+#inspect detention conditions
 
 joined_data %>% 
   as_tibble() %>% 
@@ -280,6 +284,115 @@ joined_data %>%
        y = "# of Detainees") +
   theme_test() +
   theme(plot.title = element_text(hjust = 0.5)) 
+
+# Abuse By Governate  -------------------------------------------------------
+
+# summary table detentions
+
+joined_data %>%
+  as_tibble() %>% 
+  group_by(ADM1_EN) %>% 
+  left_join(egypt_population, by = 'ADM1_EN') %>% 
+  mutate(Detained = n(),
+         detention_per_million = (Detained/Population)*1E6) %>% 
+  rename(Governate = ADM1_EN) %>% 
+  select(Governate, Detained, detention_per_million) %>% 
+  distinct()
+
+
+# summary table conditions
+
+joined_data %>% 
+  as_tibble() %>% 
+  group_by(ADM1_EN) %>%
+  select(health:overcrowding) %>% 
+  mutate(across(everything(), as.character)) %>% 
+  replace(!is.na(.), '1') %>% 
+  replace(is.na(.), '0') %>% 
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(ADM1_EN = joined_data$ADM1_EN) %>% 
+  rename_with(str_to_title) %>% 
+  summarise_all(sum) %>% 
+  rename("Poor Treatment" = Poor_treatment) 
+
+# summary table torture
+
+joined_data %>% 
+  as_tibble() %>% 
+  group_by(ADM1_EN) %>% 
+  select(beating, 
+         electrocution, 
+         threaten_family, 
+         hanging) %>% 
+  replace(is.na(.), 0) %>% 
+  summarise(beating = sum(beating), 
+            electrocution = sum(electrocution), 
+            threaten_family = sum(threaten_family),
+            hanging = sum(hanging)) %>% 
+  rename_with(str_to_title) %>% 
+  rename("Threaten Family" = Threaten_family) 
+
+# Static Maps of Abuses ---------------------------------------------------
+
+
+basemap <-
+  st_bbox(joined_data) %>% 
+  tmaptools::read_osm()
+
+tmap_mode('plot')
+
+torture_map <- tm_shape(basemap) +
+  tm_rgb() +
+  
+  joined_data %>% 
+  mutate(torture = if_else(
+    is.na(beating) == FALSE | 
+      is.na(electrocution) == FALSE |
+      is.na(threaten_family) == FALSE |
+      is.na(hanging) == FALSE,
+    1,
+    0)) %>% 
+  group_by(ADM1_EN) %>% 
+  summarise('Reported Torture' = sum(torture)) %>% 
+  
+  tm_shape(name = 'Reported Torture') +
+  tm_polygons(col = 'Reported Torture') +
+  
+  tm_layout(legend.outside = TRUE, 
+            legend.outside.position = "right")
+
+rep_map <- tm_shape(basemap) +
+  tm_rgb() + 
+  
+  joined_data %>% 
+  mutate(
+    lawyer_present = case_when(
+      lawyer_present == Present ~ 0,
+      lawyer_present != Present ~ 1)) %>% 
+  select(lawyer_present, ADM1_EN) %>% 
+  drop_na() %>% 
+  group_by(ADM1_EN) %>% 
+  summarise("Access to Lawyer" = sum(lawyer_present)) %>% 
+  
+  tm_shape(name = "Access to Lawyer") +
+  tm_polygons(col = "Access to Lawyer") +
+  tm_layout(legend.outside = TRUE, 
+            legend.outside.position = "right")
+
+disappearance_map <- tm_shape(basemap) +
+  tm_rgb() + 
+  
+  joined_data %>% 
+  select(disappeared, ADM1_EN) %>% 
+  group_by(ADM1_EN) %>% 
+  summarise(Disappeared = sum(disappeared)) %>% 
+  tm_shape(name = "Disappeared") +
+  tm_polygons(col = "Disappeared") +
+  tm_layout(legend.outside = TRUE, 
+            legend.outside.position = "right")
+
+
+tmap_arrange(torture_map, rep_map, disappearance_map)
 
 # Socio Economic Factors --------------------------------------------------
 
@@ -362,9 +475,9 @@ abuse_correlation <-
             lawyer_present == Present ~ 1,
             lawyer_present != Present & 
               is.na(lawyer_present) == FALSE ~ 0)) %>% 
-        select("Enforced Disappearance" = disappeared, 
-               torture, 
-               'Legal Representation' = lawyer_present) %>% 
+        select("Disappeared" = disappeared, 
+               "Torture" = torture, 
+               'Legal Rep' = lawyer_present) %>% 
         drop_na())  
 
 # plot correlation
@@ -373,6 +486,7 @@ corrplot(abuse_correlation,
          type="upper", 
          order="hclust",
          title = "Correlation Between Abuses",
+         tl.cex = 0.8,
          mar=c(0,0,1,0))
 
 # correlation between abuses and socioeconomic factors
@@ -399,8 +513,8 @@ socioeconomic_corr <-
         drop_na() %>%
         group_by(ADM1_EN) %>% 
         summarise(Torture = sum(torture), 
-                  "Enforced Disappearance" = sum(disappeared), 
-                  "Legal Representation" = sum(lawyer_present)) %>% 
+                  "Disappeared" = sum(disappeared), 
+                  "Legal Rep" = sum(lawyer_present)) %>% 
         left_join(socioeconomic %>% 
                     mutate(Region = case_when(
                       Region == "Assuit" ~ 'Assiut',
@@ -409,8 +523,8 @@ socioeconomic_corr <-
                       Region == "Menya" ~ "Menia",
                       Region == "Souhag" ~ "Suhag",
                       TRUE ~ Region)) %>% 
-                    select('Region', 'Poverty (IWI<50)', 
-                           'Mean Years Schooling'), 
+                    select('Region', "Poverty" = 'Poverty (IWI<50)', 
+                           "Education" = 'Mean Years Schooling'), 
                   by = c("ADM1_EN" = "Region")) %>% 
         select(-ADM1_EN) %>% 
         drop_na())  
@@ -421,118 +535,10 @@ corrplot(socioeconomic_corr,
          type="upper", 
          order="hclust",
          title = "Socioeconomic Correlation",
+         tl.cex = 0.8,
          mar=c(0,0,1,0))
 
-# Summary Tables ----------------------------------------------------------
 
-# summary table detentions
-
-joined_data %>%
-  as_tibble() %>% 
-  group_by(ADM1_EN) %>% 
-  left_join(egypt_population, by = 'ADM1_EN') %>% 
-  mutate(Detained = n(),
-         detention_per_million = (Detained/Population)*1E6) %>% 
-  rename(Governate = ADM1_EN) %>% 
-  select(Governate, Detained, detention_per_million) %>% 
-  distinct()
-
-
-# summary table conditions
-
-joined_data %>% 
-  as_tibble() %>% 
-  select(42:51) %>% 
-  mutate(across(everything(), as.character)) %>% 
-  replace(!is.na(.), '1') %>% 
-  replace(is.na(.), '0') %>% 
-  mutate(across(everything(), as.numeric)) %>% 
-  rename_with(str_to_title) %>% 
-  summarise_all(sum) %>% 
-  rename("Poor Treatment" = Poor_treatment) %>%
-  select(-Strike) %>% 
-  pivot_longer(everything(), 
-               names_to = "Condition",
-               values_to = "Incidence")
-
-# summary table torture
-
-joined_data %>% 
-  as_tibble() %>% 
-  group_by(ADM1_EN) %>% 
-  select(beating, 
-         electrocution, 
-         threaten_family, 
-         hanging) %>% 
-  replace(is.na(.), 0) %>% 
-  summarise(beating = sum(beating), 
-            electrocution = sum(electrocution), 
-            threaten_family = sum(threaten_family),
-            hanging = sum(hanging)) %>% 
-  rename_with(str_to_title) %>% 
-  rename("Threaten Family" = Threaten_family) 
-
-# Static Maps of Abuses ---------------------------------------------------
-
-
-basemap <-
-  st_bbox(joined_data) %>% 
-  tmaptools::read_osm()
-
-tmap_mode('plot')
-
-torture_map <- tm_shape(basemap) +
-  tm_rgb() +
-  
-  joined_data %>% 
-  mutate(torture = if_else(
-    is.na(beating) == FALSE | 
-      is.na(electrocution) == FALSE |
-      is.na(threaten_family) == FALSE |
-      is.na(hanging) == FALSE,
-    1,
-    0)) %>% 
-  group_by(ADM1_EN) %>% 
-  summarise('Reported Torture' = sum(torture)) %>% 
-  
-  tm_shape(name = 'Reported Torture') +
-  tm_polygons(col = 'Reported Torture') +
-  
-  tm_layout(legend.outside = TRUE, 
-            legend.outside.position = "right")
-
-rep_map <- tm_shape(basemap) +
-  tm_rgb() + 
-  
-  joined_data %>% 
-  mutate(
-    lawyer_present = case_when(
-      lawyer_present == Present ~ 0,
-      lawyer_present != Present ~ 1)) %>% 
-  select(lawyer_present, ADM1_EN) %>% 
-  drop_na() %>% 
-  group_by(ADM1_EN) %>% 
-  summarise("Access to Lawyer" = sum(lawyer_present)) %>% 
-  
-  tm_shape(name = "Access to Lawyer") +
-  tm_polygons(col = "Access to Lawyer") +
-  tm_layout(legend.outside = TRUE, 
-            legend.outside.position = "right")
-
-disappearance_map <- tm_shape(basemap) +
-  tm_rgb() + 
-  
-  joined_data %>% 
-  select(disappeared, ADM1_EN) %>% 
-  group_by(ADM1_EN) %>% 
-  summarise(Disappeared = sum(disappeared)) %>% 
-  tm_shape(name = "Disappeared") +
-  tm_polygons(col = "Disappeared") +
-  tm_layout(legend.outside = TRUE, 
-            legend.outside.position = "right")
-
-
-tmap_arrange(torture_map, rep_map, disappearance_map)
 
 
 
