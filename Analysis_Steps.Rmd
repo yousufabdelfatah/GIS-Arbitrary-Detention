@@ -1,0 +1,26 @@
+---
+title: "Analysis_Steps"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Acquistion
+
+Data for this project was sourced from two sources. Socioeconomic data was 
+sourced from the Global Data Lab. Data on detention came from an associated 
+partner human rights organization with a focus on case documentation. 
+
+# Data Cleaning
+
+Data Cleaning and Data Analysis were conducted in separate scripts in order to 
+keep the workflows separate and to avoid accidentally overwriting the clean data.
+
+
+
+# Data Analysis
+
+
+# Shiny App

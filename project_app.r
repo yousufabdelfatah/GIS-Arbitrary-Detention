@@ -8,6 +8,7 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(leaflet)
+library(corrplot)
 
 # data --------------------------------------------------------------------
 
@@ -124,7 +125,7 @@ joined_data$disappeared <-
 
 # Interactive Maps --------------------------------------------------------
 
-tmap_mode('view')
+#tmap_mode('view')
 
 detainee_map <- 
       {joined_data %>%
@@ -346,19 +347,22 @@ abuse_correlation <-
             lawyer_present == Present ~ 1,
             lawyer_present != Present & 
               is.na(lawyer_present) == FALSE ~ 0)) %>% 
-        select("Enforced Disappearance" = disappeared, 
-               torture, 
-               'Legal Representation' = lawyer_present) %>% 
+        select("Disappeared" = disappeared, 
+               "Torture" = torture, 
+               'Legal Rep' = lawyer_present) %>% 
         drop_na())  
+
 
 # plot correlation
 
-abuse_corrplot <- 
-  corrplot(abuse_correlation, 
-           type="upper", 
-           order="hclust",
-           title = "Correlation Between Abuses",
-           mar=c(0,0,1,0))
+corrplot(abuse_correlation, 
+         type="upper", 
+         order="hclust",
+         tl.cex = 0.8,
+         title = "Correlation Between Abuses",
+         mar=c(0,0,1,0))
+
+abuse_corrplot <- recordPlot()
 
 # correlation between abuses and socioeconomic factors
 
@@ -384,8 +388,8 @@ socioeconomic_corr <-
         drop_na() %>%
         group_by(ADM1_EN) %>% 
         summarise(Torture = sum(torture), 
-                  "Enforced Disappearance" = sum(disappeared), 
-                  "Legal Representation" = sum(lawyer_present)) %>% 
+                  "Disappeared" = sum(disappeared), 
+                  "Legal Rep" = sum(lawyer_present)) %>% 
         left_join(socioeconomic %>% 
                     mutate(Region = case_when(
                       Region == "Assuit" ~ 'Assiut',
@@ -394,20 +398,22 @@ socioeconomic_corr <-
                       Region == "Menya" ~ "Menia",
                       Region == "Souhag" ~ "Suhag",
                       TRUE ~ Region)) %>% 
-                    select('Region', 'Poverty (IWI<50)', 
-                           'Mean Years Schooling'), 
+                    select('Region', "Poverty" = 'Poverty (IWI<50)', 
+                           "Education" = 'Mean Years Schooling'), 
                   by = c("ADM1_EN" = "Region")) %>% 
         select(-ADM1_EN) %>% 
         drop_na())  
 
 # plot correlation 
 
-socioeconomic_corrplot <- 
-  corrplot(socioeconomic_corr, 
-           type="upper", 
-           order="hclust",
-           title = "Socioeconomic Correlation",
-           mar=c(0,0,1,0))
+corrplot(socioeconomic_corr, 
+         type="upper", 
+         order="hclust",
+         tl.cex = 0.8,
+         title = "Socioeconomic Correlation",
+         mar=c(0,0,1,0))
+
+socioeconomic_corrplot <- recordPlot()
 
 # Summary Tables ----------------------------------------------------------
 
@@ -429,18 +435,34 @@ numbers <-
 conditions <- 
   joined_data %>% 
   as_tibble() %>% 
-  select(health:strike) %>% 
+  group_by(ADM1_EN) %>%
+  select(health:overcrowding) %>% 
   mutate(across(everything(), as.character)) %>% 
   replace(!is.na(.), '1') %>% 
   replace(is.na(.), '0') %>% 
   mutate(across(everything(), as.numeric)) %>% 
+  mutate(ADM1_EN = joined_data$ADM1_EN) %>% 
   rename_with(str_to_title) %>% 
   summarise_all(sum) %>% 
-  rename("Poor Treatment" = Poor_treatment) %>%
-  select(-Strike) %>% 
-  pivot_longer(everything(), 
-               names_to = "Condition",
-               values_to = "Incidence")
+  rename("Poor Treatment" = Poor_treatment) 
+
+# summary table torture
+
+torture_table <- 
+  joined_data %>% 
+  as_tibble() %>% 
+  group_by(ADM1_EN) %>% 
+  select(beating, 
+         electrocution, 
+         threaten_family, 
+         hanging) %>% 
+  replace(is.na(.), 0) %>% 
+  summarise(beating = sum(beating), 
+            electrocution = sum(electrocution), 
+            threaten_family = sum(threaten_family),
+            hanging = sum(hanging)) %>% 
+  rename_with(str_to_title) %>% 
+  rename("Threaten Family" = Threaten_family) 
 
 
 # Static Maps -------------------------------------------------------------
@@ -449,7 +471,7 @@ basemap <-
   st_bbox(joined_data) %>% 
   tmaptools::read_osm()
 
-tmap_mode('plot')
+# tmap_mode('plot')
 
 torture_map <- tm_shape(basemap) +
   tm_rgb() +
@@ -478,8 +500,8 @@ rep_map <- tm_shape(basemap) +
   joined_data %>% 
   mutate(
     lawyer_present = case_when(
-      lawyer_present == Present ~ 1,
-      lawyer_present != Present ~ 0)) %>% 
+      lawyer_present == Present ~ 0,
+      lawyer_present != Present ~ 1)) %>% 
   select(lawyer_present, ADM1_EN) %>% 
   drop_na() %>% 
   group_by(ADM1_EN) %>% 
@@ -520,7 +542,7 @@ ui <-
     
     # set the title
     
-    dashboardHeader(title = 'Arbitrary Detention app'),
+    dashboardHeader(title = 'Arbitrary Detention App'),
     
     # set the sidebar options
     
@@ -572,7 +594,17 @@ ui <-
         tabItem(
           tabName = 'home',
           h2('Arbitrary Detention In Egypt'),
-          p("Some Text")),
+          img(src = "Tora.png"),
+          br(),
+          p("This app presents a geospatial analysis of patterns of
+          politically motivated detention practices in Egypt. Given the limited
+          visibility into the country's criminal justice system, trend analysis
+          such as this is an important facet of human rights doucmentation and 
+          accountability efforts. The 420 detainees whose data is analyzed here 
+          represent just a small portion of the over 65,000 Egyptian poltiical 
+          prisoners subjected to similar abuses. Data on detentions was provided
+          by a partner human rights organizations. Socioeconomic indicators were 
+          sourced from the Global Data Lab.")),
         
         # setting the Interactive map tab and the radio buttons included 
         
@@ -586,14 +618,46 @@ ui <-
             choiceValues = c('detainee_map', 
                              'socioeconomic_map')),
           h2('Interactive Maps'),
-          tmapOutput(outputId = 'interactive_map')),
+          p("This page contains two interactive maps. The first shows the number
+          of detainees per government across the cases in the dataset with a 
+          toggleable layer accounting for population density (per million). The
+          names of each governate can be seen when hovered over with the 
+          cursor."),
+          p("The second map contains 3 toggleable socioeconomic indicators: A 
+          poverty index, mean years of schooling, and average life expectancy 
+          again broken out by governate. While the other two indicators are 
+          seld explanatory, the Povery Index representes the proportion of 
+          households with substandard living conditions.
+          Data for the outer governates was not available."),
+          tmapOutput(outputId = 'interactive_map'),
+          br(),
+          p("As can be seen in the above the more populous and highly urbanized
+            areas have a greater absolute number and proportion of 
+            detainees. This follows logically given that mobilization occurs more
+            frequently in these areas."),
+          p("At first glance it seems that socioeconomic condtions and detention
+            are inversely correlated. This result may be counter to existing 
+            expectations. It will be further addressed in the Correlations tab
+            ")),
         
         # Set Static Maps
         
         tabItem(
           tabName = 'maps2',
           h2('Static Maps'),
-          plotOutput(outputId = 'static_map')),
+          p("The following static maps contain represent reported abuses per
+            governate. The first map shows the number of detainees who reported
+            incidents of torture, the second shows the number who did not have
+            access to a lawyer, while the third shows the number forcibly 
+            disappeared prior to detention."),
+          plotOutput(outputId = 'static_map'),
+          br(),
+          p("We see here the same patterns we saw in the previous maps, which
+            makes sense considering that's where most of the detainees come
+            from. It's also worth noting the shockingly high proportion of
+            detainees from each governate that are subjected to abuse compared. 
+            This to the number of detainees in each governate in the previous 
+            map. This will be further outlined by the charts in the next tab")),
         
         # setting the charts view and associates radio buttons
         
@@ -609,7 +673,33 @@ ui <-
                             'Enforced Disappearance',
                             'Days Disappeared')),
           h2('Detention Data Charts'),
-          plotOutput(outputId = 'plot_output')),
+          p("The following charts display additional data about the selected
+            abuses."),
+          plotOutput(outputId = 'plot_output'),
+          p("Some quick summary points:"),
+          p("The majority of detainees are in their mid-20s, with a few in their 
+            teens and a group of detainees in their 50s and 60s."),
+          p('Torture is an unfortunately common phenomenon in Egyptian prisons.
+            Electrocution is by far the most commonly reported form. Here it is 
+            important to note two things. The first is that these categories are
+            not mutually exclusive. Many detainees reported experiencing multiple 
+            forms of torture. Second, the lack of reporting of an abuse is not 
+            evidence that an abuse did not exist. Many often go unreported, and 
+            this is especially true of abuses considered to be "common" such as 
+            beatings. As a result, beatings are normally only reported when 
+            they are especially bad. This caveat about reporting applies to all
+            violations.'),
+          p("Of the many issues with detention conditions, denial of visitations 
+            are the most common. All Egyptian prisons are overcrowded based on UN
+            minimum standards but the fact that it is so common place leads to 
+            underreporting outside of exceptionally egregious cases. Again these
+            categories are no mutually exclusive"),
+          p("Nearly 80% of detainees for which there was data on legal
+            representatoin did not have acccess to a lawyer."),
+          p("Almost half of detainees reported being enforcibly disappeared 
+            before being formally detained."),
+          p("Most disappearances were roughly a month, while in a few cases they
+            lasted up to 200 days.")),
         
         # setting the correlations and radio buttons
         
@@ -623,7 +713,30 @@ ui <-
             choiceValues = c('abuse_corrplot', 
                              'socioeconomic_corrplot')),
           h2('Correlation Plots'),
-          plotOutput(outputId = 'correlation_plot')),
+          p("This tab contains two correlation diagrams: One exploring
+          correlations between abuses, and the other exploring correlation
+          between abuses and socioeconomic indicators. Importantly the first
+          correlation is on an indiviual level, while the second is grouped
+          by governate."),
+          plotOutput(outputId = 'plot_correlation', width = '200%'),
+          br(),
+          p("Two interesting observations can be drawn from the above. The first
+            is that there does not seem to be very weak correlations between abuse 
+            types for individuals. While there does however seem to be a strong 
+            correlation between absues at the governate level, this is likely
+            a function of the numebr of individuals detained from that governate.
+            Simply put, abuse is so widespread that the number of detainees is
+            itself a good indicator of the prevalence of abuse."),
+          p("Perhaps even more interesting is that there seems to be an inverse
+            correlation between socioeconomic well being and abuse. Individuals
+            from governates with higher average education levels and lower 
+            poverty levels are abused more frequently. The explanation for this
+            is simple. Those governates are also the most populated and most
+            urbanized, and thus have the most detainees. This shows a weaknees 
+            in using governate level data. Were we able to factor down to smaller
+            administrative levels and explore intra-governate level differences
+            I believe we would see a starkly different result.")),
+
         
         # setting the tables tab and corresponding dropdown box
         
@@ -634,10 +747,13 @@ ui <-
             inputId = 'table',
             label = 'Table',
             choices = c('Detention Conditions', 
-                        'Detention By Governate')),
+                        'Detention By Governate',
+                        'Torture')),
+          p("This tab displays summary statistics for detention conditions, 
+          torture, and  number of individuals detained by governate 
+          based on the selection from the drop down menu."),
           dataTableOutput(outputId = 'summary_table'))
         
-
       )
     )
   )
@@ -695,9 +811,10 @@ server <- function(input, output) {
     reactive({
       if (input$table == 'Detention Conditions') {
         conditions 
-      } else {
+      } else if (input$table == 'Torture') {
+        torture_table
+      } else
         numbers 
-      }
     })
     
 
@@ -721,7 +838,7 @@ server <- function(input, output) {
   
 # Correlation Plot:
   
-  output$correlation_plot <-
+  output$plot_correlation <-
     renderPlot(correlation_plot())
 
   

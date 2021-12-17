@@ -507,8 +507,8 @@ rep_map <- tm_shape(basemap) +
   joined_data %>% 
   mutate(
     lawyer_present = case_when(
-      lawyer_present == Present ~ 1,
-      lawyer_present != Present ~ 0)) %>% 
+      lawyer_present == Present ~ 0,
+      lawyer_present != Present ~ 1)) %>% 
   select(lawyer_present, ADM1_EN) %>% 
   drop_na() %>% 
   group_by(ADM1_EN) %>% 
